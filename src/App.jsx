@@ -1,10 +1,14 @@
 import React, { useState } from 'react';
-import { ShieldAlert, Info, ChevronDown, BookOpen } from 'lucide-react';
+import { ShieldAlert, Info, ChevronDown, BookOpen, BarChart3 } from 'lucide-react';
 import stats from './data/stats.json';
 import { Kpi } from './lib/ui.jsx';
 import Header from './components/Header.jsx';
 import IntroBanner from './components/IntroBanner.jsx';
+import NextDraw from './components/NextDraw.jsx';
 import PredictionsHero from './components/PredictionsHero.jsx';
+import ModelsLegend from './components/ModelsLegend.jsx';
+import StrongPairs from './components/StrongPairs.jsx';
+import SystematicLotto from './components/SystematicLotto.jsx';
 import HotColdChart from './components/HotColdChart.jsx';
 import SumDistribution from './components/SumDistribution.jsx';
 import OverduePanel from './components/OverduePanel.jsx';
@@ -13,19 +17,13 @@ import MarkovPanel from './components/MarkovPanel.jsx';
 import NumberGrid from './components/NumberGrid.jsx';
 import StrongPanel from './components/StrongPanel.jsx';
 import Glossary from './components/Glossary.jsx';
-import DrawLookup from './components/DrawLookup.jsx';
-import CheckNumbers from './components/CheckNumbers.jsx';
-import Simulator22 from './components/Simulator22.jsx';
-import NextDraw from './components/NextDraw.jsx';
-import ModelsLegend from './components/ModelsLegend.jsx';
 
 export default function App() {
   const [heroKey, setHeroKey] = useState(0);
-  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showStats, setShowStats] = useState(false);
   const [glossaryOpen, setGlossaryOpen] = useState(false);
-  const { meta, frequency, sumStats, overdue, evenOdd, consecutive, markov, numberTable, strong, tickets } = stats;
+  const { meta, frequency, sumStats, overdue, evenOdd, consecutive, markov, numberTable, strong, tickets, coOccurrence, systematic } = stats;
   const topSplit = [...evenOdd.dist].sort((a, b) => b.count - a.count)[0];
-  const sweetEvens = evenOdd.sweetSplits.map((s) => s.evens);
 
   return (
     <div className="min-h-screen overflow-x-hidden text-ink">
@@ -35,19 +33,25 @@ export default function App() {
       <Header meta={meta} />
 
       <main id="main" className="mx-auto max-w-[1400px] space-y-6 px-4 py-6 sm:px-5">
-        {/* ===== משפט-על כן ===== */}
-        <IntroBanner totalDraws={meta.totalDraws} years={meta.years} />
-
-        {/* ===== ההגרלה הבאה — טיימר + פרס ===== */}
+        {/* ===== פס דק: ההגרלה הבאה ===== */}
         <NextDraw />
 
-        {/* ===== גיבור: 5 התחזיות ===== */}
+        {/* ========== העיקר: התחזיות ========== */}
         <PredictionsHero key={heroKey} tickets={tickets} sweet={sumStats.sweet} onRegen={() => setHeroKey((k) => k + 1)} />
 
-        {/* ===== מקרא המודלים ===== */}
+        {/* מקרא המודלים (מתקפל) */}
         <ModelsLegend tickets={tickets} />
 
-        {/* ===== פס מדדים ===== */}
+        {/* ========== מעניין: צמדים חזקים + לוטו שיטתי ========== */}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <StrongPairs coOccurrence={coOccurrence} />
+          <SystematicLotto systematic={systematic} />
+        </div>
+
+        {/* משפט-על כן (קומפקטי) */}
+        <IntroBanner totalDraws={meta.totalDraws} years={meta.years} />
+
+        {/* ========== פחות עיקרי: סטטיסטיקה מעמיקה (מתקפל) ========== */}
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <Kpi label="הגרלות במאגר" value={meta.totalDraws.toLocaleString('he-IL')} hint="פורמט מודרני 6/37" />
           <Kpi label="שנות היסטוריה" value={meta.years.toFixed(1)} unit="שנים" hint={`מ-${meta.firstDraw.date}`} />
@@ -55,33 +59,23 @@ export default function App() {
           <Kpi label="חלוקה נפוצה" value={topSplit.label.replace(' זוגי', 'ז').replace(' אי-זוגי', 'א')} hint={`${(topSplit.pct * 100).toFixed(0)}% מההגרלות`} />
         </div>
 
-        {/* ===== כלים אינטראקטיביים ===== */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <DrawLookup />
-          <CheckNumbers numberTable={numberTable} sweet={sumStats.sweet} sweetEvens={sweetEvens} />
-        </div>
-        <Simulator22 />
-
-        {/* ===== גריד ראשי — תדירות + סכום (תמיד גלוי) ===== */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <HotColdChart frequency={frequency} />
-          <SumDistribution sumStats={sumStats} tickets={tickets} />
-        </div>
-
-        {/* ===== כפתור חשיפה הדרגתית ===== */}
         <button
-          onClick={() => setShowAdvanced((v) => !v)}
-          aria-expanded={showAdvanced}
+          onClick={() => setShowStats((v) => !v)}
+          aria-expanded={showStats}
           className="group flex w-full items-center justify-center gap-2.5 rounded-xl border border-line bg-panel card-shadow px-5 py-3.5 text-sm font-bold text-ink transition-colors hover:border-accent/40 hover:text-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
         >
-          {showAdvanced ? 'הסתר ניתוחים מתקדמים' : 'הצג עוד ניתוחים מתקדמים'}
-          <span className="tnum rounded-md bg-base px-1.5 py-0.5 text-[11px] text-muted">5</span>
-          <ChevronDown size={17} className={`transition-transform duration-300 ${showAdvanced ? 'rotate-180' : ''}`} />
+          <BarChart3 size={16} />
+          {showStats ? 'הסתר סטטיסטיקה מעמיקה' : 'הצג סטטיסטיקה מעמיקה'}
+          <span className="tnum rounded-md bg-base px-1.5 py-0.5 text-[11px] text-muted">7</span>
+          <ChevronDown size={17} className={`transition-transform duration-300 ${showStats ? 'rotate-180' : ''}`} />
         </button>
 
-        {/* ===== ניתוחים מתקדמים (לסקרנים) ===== */}
-        {showAdvanced && (
+        {showStats && (
           <div className="space-y-6">
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+              <HotColdChart frequency={frequency} />
+              <SumDistribution sumStats={sumStats} tickets={tickets} />
+            </div>
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
               <OverduePanel overdue={overdue} />
               <RatioPanel evenOdd={evenOdd} consecutive={consecutive} />

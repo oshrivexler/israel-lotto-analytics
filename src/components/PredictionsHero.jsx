@@ -73,6 +73,24 @@ function TicketCard({ t, index, sweet }) {
           <span className="font-bold text-ink">{t.evens}</span> זוגי · <span className="font-bold text-ink">{t.odds}</span> אי-זוגי
         </span>
       </div>
+
+      {/* ניתוח הצירוף */}
+      {t.analysis && (
+        <div className="space-y-1.5 rounded-lg bg-panel-2 p-2.5 text-[11px] leading-tight">
+          {t.analysis.bestPair?.count > 0 && (
+            <p className="tnum flex items-center gap-1 text-muted">
+              <GitBranch size={11} className="text-accent" />
+              צמד חזק: <b className="text-ink">{pad2(t.analysis.bestPair.a)}-{pad2(t.analysis.bestPair.b)}</b>
+              <span className="text-faint">(יחד {t.analysis.bestPair.count}×)</span>
+            </p>
+          )}
+          <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-muted">
+            <span className="flex items-center gap-0.5"><Flame size={10} style={{ color: 'var(--color-hot)' }} /><b className="text-ink">{t.analysis.hotCount}</b> חמים</span>
+            <span className="flex items-center gap-0.5"><Snowflake size={10} style={{ color: 'var(--color-cold)' }} /><b className="text-ink">{t.analysis.overdueCount}</b> באיחור</span>
+            <span className="text-faint">· ממוצע יציאות {t.analysis.avgFreq}</span>
+          </p>
+        </div>
+      )}
     </div>
   );
 }
@@ -89,11 +107,11 @@ export default function PredictionsHero({ tickets, sweet, onRegen }) {
             <span className="text-[12px] font-semibold uppercase tracking-wider text-accent">תיק תחזיות · ההגרלה הקרובה</span>
           </div>
           <h2 className="text-2xl font-black tracking-tight sm:text-3xl">
-            5 צירופים <span className="text-accent text-glow">מאוזנים</span>
+            {tickets.length} צירופים <span className="text-accent text-glow">מומלצים</span>
           </h2>
           <p className="mt-1 max-w-2xl text-[13px] leading-relaxed text-muted">
-            5 דרכים שונות לבחור צירוף ״מאוזן״ לפי הדפוסים ההיסטוריים (כל אחת מוסברת בכרטיס שלה).
-            <b className="text-ink"> חשוב: </b> זו המחשה ללימוד והשראה — אף שיטה אינה מבטיחה זכייה, ולכל צירוף יש בדיוק אותו סיכוי.
+            {tickets.length} שיטות שונות לבחירת צירוף לפי הדפוסים ההיסטוריים — כל צירוף מנותח בכרטיס שלו.
+            <b className="text-ink"> חשוב: </b> זו המחשה ללימוד והשראה — אף שיטה אינה מבטיחה זכייה, ולכל צירוף אותו סיכוי.
           </p>
         </div>
         <button
@@ -105,7 +123,7 @@ export default function PredictionsHero({ tickets, sweet, onRegen }) {
         </button>
       </div>
 
-      <div className="relative grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+      <div className="relative grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {tickets.map((t, i) => (
           <TicketCard key={t.id} t={t} index={i} sweet={sweet} />
         ))}

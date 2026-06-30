@@ -287,6 +287,27 @@ def build():
     top_consec = sorted(({"pair": k, "count": v} for k, v in consec_pair.items()),
                         key=lambda x: -x["count"])[:12]
 
+    # --- קו-הופעה: אילו מספרים מופיעים יחד (צמדים חזקים) ---
+    co = [[0] * (MAIN_MAX + 1) for _ in range(MAIN_MAX + 1)]
+    for r in rows:
+        ns = r["nums"]
+        for ai in range(len(ns)):
+            for bi in range(ai + 1, len(ns)):
+                co[ns[ai]][ns[bi]] += 1
+                co[ns[bi]][ns[ai]] += 1
+    pair_expected = len(rows) * (PICK / MAIN_MAX) * ((PICK - 1) / (MAIN_MAX - 1))
+    pair_list = []
+    for a in NUMBERS:
+        for b in range(a + 1, MAIN_MAX + 1):
+            c = co[a][b]
+            pair_list.append({"a": a, "b": b, "count": c, "lift": (c / pair_expected if pair_expected else 0)})
+    top_pairs = sorted(pair_list, key=lambda p: (-p["count"], p["a"], p["b"]))[:12]
+    companions = {n: [{"n": m, "count": co[n][m]}
+                      for m, _ in sorted(((m, co[n][m]) for m in NUMBERS if m != n), key=lambda x: (-x[1], x[0]))[:4]]
+                  for n in NUMBERS}
+    companion_centrality = {n: sum(co[n][m] for m in NUMBERS if m != n) for n in NUMBERS}
+    companion_n = normalize(companion_centrality)
+
     # --- שרשרת מרקוב ---
     T = [[0] * (MAIN_MAX + 1) for _ in range(MAIN_MAX + 1)]
     y_as_current = [0] * (MAIN_MAX + 1)
@@ -315,6 +336,10 @@ def build():
     overdue_n = normalize({g["n"]: g["gap"] for g in gaps})
     trans_n = normalize({t["n"]: t["score"] for t in transition_score})
 
+    # ציון משוקלל (ensemble) המשלב את כל המודלים — לפיזור וללוטו שיטתי
+    ensemble = {n: 0.35 * hot_n[n] + 0.25 * overdue_n[n] + 0.20 * trans_n[n] + 0.20 * companion_n[n] for n in NUMBERS}
+    ensemble_rank = sorted(NUMBERS, key=lambda n: (-ensemble[n], n))
+
     strategies = [
         {"key": "balanced", "name": "איזון מלא",
          "desc": "משקל שווה לכל השיטות — מספרים חמים, מספרים באיחור ומגמת ההגרלה האחרונה",
@@ -328,9 +353,10 @@ def build():
         {"key": "markov", "name": "לפי ההגרלה האחרונה",
          "desc": "מספרים שנוטים סטטיסטית להופיע מיד אחרי תוצאת ההגרלה הקודמת",
          "w": {"hot": 0.20, "over": 0.20, "trans": 0.60}},
-        {"key": "contrarian", "name": "איזון נגדי",
-         "desc": "דגש מוגבר על מספרים נשכחים — בחירה שונה מהמספרים הפופולריים",
-         "w": {"hot": 0.25, "over": 0.45, "trans": 0.30}},
+        {"key": "companions", "name": "צמדים חזקים", "type": "companions",
+         "desc": "נבנה סביב מספרים שמופיעים יחד הכי הרבה לאורך ההיסטוריה"},
+        {"key": "spread", "name": "פיזור מאוזן", "type": "spread",
+         "desc": "מספר מכל טווח (נמוך/בינוני/גבוה) לכיסוי רחב של לוח המספרים"},
     ]
 
     hot_set = {o[0] for o in sorted(hot_raw.items(), key=lambda kv: -kv[1])[:10]}
@@ -389,25 +415,69 @@ def build():
         key=lambda x: -x["v"],
     )
 
+    # מודל "צמדים חזקים" (דטרמיניסטי): מתחילים מהצמד החזק ביותר ומוסיפים בחמדנות
+    def gen_companions():
+        best = max(((a, b) for a in NUMBERS for b in range(a + 1, MAIN_MAX + 1)),
+                   key=lambda p: (co[p[0]][p[1]], -p[0], -p[1]))
+        chosen = [best[0], best[1]]
+        while len(chosen) < PICK:
+            cand = max((m for m in NUMBERS if m not in chosen),
+                       key=lambda m: (sum(co[m][c] for c in chosen), -m))
+            chosen.append(cand)
+        return sorted(chosen)
+
+    # מודל "פיזור מאוזן" (דטרמיניסטי): מספר מכל טווח לפי הציון המשוקלל
+    def gen_spread():
+        bands = [(1, 9), (10, 18), (19, 27), (28, 37)]
+        chosen = []
+        for lo, hi in bands:
+            cand = max((n for n in range(lo, hi + 1) if n not in chosen), key=lambda n: (ensemble[n], -n))
+            chosen.append(cand)
+        rest = sorted((n for n in NUMBERS if n not in chosen), key=lambda n: (-ensemble[n], n))
+        chosen += rest[:PICK - len(chosen)]
+        return sorted(chosen)
+
     tickets = []
     seen = set()
     for i, st in enumerate(strategies):
-        weights = weight_for(st["w"])
-        combo = None
-        for _ in range(50):
-            combo = generate_ticket(weights)
-            sig = "-".join(map(str, combo))
-            if sig not in seen:
-                seen.add(sig)
-                break
+        typ = st.get("type")
+        if typ == "companions":
+            combo = gen_companions()
+        elif typ == "spread":
+            combo = gen_spread()
+        else:
+            weights = weight_for(st["w"])
+            combo = None
+            for _ in range(50):
+                combo = generate_ticket(weights)
+                sig = "-".join(map(str, combo))
+                if sig not in seen:
+                    seen.add(sig)
+                    break
+        seen.add("-".join(map(str, combo)))
         strong_pick = strong_score[i % len(strong_score)]["n"]
         evens = sum(1 for n in combo if n % 2 == 0)
+        # ניתוח הצירוף: כמה חמים/באיחור, והצמד החזק ביותר בתוכו
+        best_pair = max(((combo[ai], combo[bi]) for ai in range(PICK) for bi in range(ai + 1, PICK)),
+                        key=lambda p: (co[p[0]][p[1]], -p[0], -p[1]))
         tickets.append({
             "id": i + 1, "strategy": st["key"], "strategyName": st["name"], "strategyDesc": st["desc"],
             "numbers": combo, "strong": strong_pick, "sum": sum(combo),
             "evens": evens, "odds": PICK - evens,
             "tags": [{"n": n, "tag": tag_of(n)} for n in combo],
+            "analysis": {
+                "hotCount": sum(1 for n in combo if n in hot_set),
+                "overdueCount": sum(1 for n in combo if n in cold_set),
+                "avgFreq": math.floor((sum(all_counts[n] for n in combo) / PICK) * 10 + 0.5) / 10,
+                "bestPair": {"a": best_pair[0], "b": best_pair[1], "count": co[best_pair[0]][best_pair[1]]},
+            },
         })
+
+    # --- לוטו שיטתי: סטים מומלצים לפי הציון המשוקלל ---
+    systematic = {
+        "s7": {"numbers": sorted(ensemble_rank[:7]), "lines": 7, "cost": round(7 * 5.8)},
+        "s8": {"numbers": sorted(ensemble_rank[:8]), "lines": 28, "cost": round(28 * 5.8)},
+    }
 
     # ---------- הרכבת הפלט ----------
     number_table = [{
@@ -453,6 +523,8 @@ def build():
         "evenOdd": {"dist": even_odd, "sweetSplits": sweet_splits},
         "consecutive": {"drawsWithConsec": draws_with_consec, "pctWithConsec": draws_with_consec / len(rows),
                         "perDraw": consec_per_draw, "topPairs": top_consec},
+        "coOccurrence": {"topPairs": top_pairs, "companions": companions, "expected": pair_expected},
+        "systematic": systematic,
         "markov": {"lastNumbers": last_nums, "topNext": trans_rank[:10]},
         "tickets": tickets,
     }
@@ -477,7 +549,7 @@ def main():
           f"נקודת מתיקה {out['sumStats']['sweet']['lo']}-{out['sumStats']['sweet']['hi']}")
     print(f"  ספליט מוביל: {out['evenOdd']['dist'][0]['label']} "
           f"({out['evenOdd']['dist'][0]['pct'] * 100:.1f}%)")
-    print("  5 הצירופים שנוצרו:")
+    print(f"  {len(out['tickets'])} הצירופים שנוצרו:")
     for t in out["tickets"]:
         nums = " ".join(f"{x:02d}" for x in t["numbers"])
         print(f"   #{t['id']} [{t['strategyName']}] {nums} | חזק {t['strong']} | "

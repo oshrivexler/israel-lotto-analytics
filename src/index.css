@@ -22,10 +22,11 @@
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 }
 
-html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; color-scheme: light only; }
 
 body {
   margin: 0;
+  color-scheme: light only;
   background-color: var(--color-base);
   color: var(--color-ink);
   font-family: var(--font-sans);

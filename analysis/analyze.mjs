@@ -222,6 +222,25 @@ function build() {
     .sort((a, b) => b.count - a.count)
     .slice(0, 12);
 
+  // --- קו-הופעה: אילו מספרים מופיעים יחד (צמדים חזקים) ---
+  const co = Array.from({ length: MAIN_MAX + 1 }, () => new Array(MAIN_MAX + 1).fill(0));
+  for (const r of rows) {
+    const ns = r.nums;
+    for (let ai = 0; ai < ns.length; ai++) {
+      for (let bi = ai + 1; bi < ns.length; bi++) { co[ns[ai]][ns[bi]]++; co[ns[bi]][ns[ai]]++; }
+    }
+  }
+  const pairExpected = rows.length * (PICK / MAIN_MAX) * ((PICK - 1) / (MAIN_MAX - 1));
+  const pairList = [];
+  for (const a of numbers) for (let b = a + 1; b <= MAIN_MAX; b++) pairList.push({ a, b, count: co[a][b], lift: pairExpected ? co[a][b] / pairExpected : 0 });
+  const topPairs = pairList.sort((p, q) => q.count - p.count || p.a - q.a || p.b - q.b).slice(0, 12);
+  const companions = {};
+  for (const n of numbers) {
+    companions[n] = numbers.filter((m) => m !== n).map((m) => ({ n: m, count: co[n][m] }))
+      .sort((x, y) => y.count - x.count || x.n - y.n).slice(0, 4);
+  }
+  const companionCentrality = numbers.map((n) => ({ n, v: numbers.reduce((s, m) => s + (m !== n ? co[n][m] : 0), 0) }));
+
   // --- שרשרת מרקוב / הסתברויות מעבר ---
   // T[y][x] = מספר הפעמים ש-x הופיע בהגרלה הבאה בהינתן ש-y הופיע בהגרלה הנוכחית
   const T = Array.from({ length: MAIN_MAX + 1 }, () => new Array(MAIN_MAX + 1).fill(0));
@@ -259,14 +278,21 @@ function build() {
   const hotN = norm(hotRaw, 'v');
   const overdueN = norm(gaps.map((g) => ({ n: g.n, v: g.gap })), 'v');
   const transN = norm(transitionScore.map((t) => ({ n: t.n, v: t.score })), 'v');
+  const companionN = norm(companionCentrality, 'v');
 
-  // אסטרטגיות לכל אחת מ-5 הקומבינציות (משקלי חם/פיגור/מעבר) — לגיוון התיק
+  // ציון משוקלל (ensemble) המשלב את כל המודלים — לפיזור וללוטו שיטתי
+  const ensemble = {};
+  for (const n of numbers) ensemble[n] = 0.35 * hotN[n] + 0.25 * overdueN[n] + 0.20 * transN[n] + 0.20 * companionN[n];
+  const ensembleRank = [...numbers].sort((a, b) => ensemble[b] - ensemble[a] || a - b);
+
+  // אסטרטגיות החיזוי (משקלי חם/פיגור/מעבר + מודלים דטרמיניסטיים)
   const strategies = [
     { key: 'balanced', name: 'איזון מלא', desc: 'משקל שווה לכל השיטות — מספרים חמים, מספרים באיחור ומגמת ההגרלה האחרונה', w: { hot: 0.34, over: 0.33, trans: 0.33 } },
     { key: 'hot', name: 'המספרים החמים', desc: 'דגש על המספרים שיוצאים הכי הרבה לאורך ההיסטוריה', w: { hot: 0.60, over: 0.15, trans: 0.25 } },
     { key: 'overdue', name: 'מספרים באיחור', desc: 'דגש על מספרים שלא יצאו הרבה זמן (“בפיגור”) וצפויים לחזור', w: { hot: 0.15, over: 0.60, trans: 0.25 } },
     { key: 'markov', name: 'לפי ההגרלה האחרונה', desc: 'מספרים שנוטים סטטיסטית להופיע מיד אחרי תוצאת ההגרלה הקודמת', w: { hot: 0.20, over: 0.20, trans: 0.60 } },
-    { key: 'contrarian', name: 'איזון נגדי', desc: 'דגש מוגבר על מספרים נשכחים — בחירה שונה מהמספרים הפופולריים', w: { hot: 0.25, over: 0.45, trans: 0.30 } },
+    { key: 'companions', name: 'צמדים חזקים', type: 'companions', desc: 'נבנה סביב מספרים שמופיעים יחד הכי הרבה לאורך ההיסטוריה' },
+    { key: 'spread', name: 'פיזור מאוזן', type: 'spread', desc: 'מספר מכל טווח (נמוך/בינוני/גבוה) לכיסוי רחב של לוח המספרים' },
   ];
 
   // קטגוריזציה לתיוג בממשק
@@ -317,18 +343,57 @@ function build() {
     n, v: 0.6 * (strongCounts[n] / (strongDraws || 1)) + 0.4 * (strongGap.find((g) => g.n === n).gap / totalDraws),
   })).sort((a, b) => b.v - a.v);
 
+  // מודל "צמדים חזקים" (דטרמיניסטי): מתחילים מהצמד החזק ביותר ומוסיפים בחמדנות
+  const genCompanions = () => {
+    let best = null, bestC = -1;
+    for (const a of numbers) for (let b = a + 1; b <= MAIN_MAX; b++) { if (co[a][b] > bestC) { bestC = co[a][b]; best = [a, b]; } }
+    const chosen = [best[0], best[1]];
+    while (chosen.length < PICK) {
+      let cand = -1, candScore = -1;
+      for (const m of numbers) {
+        if (chosen.includes(m)) continue;
+        const sc = chosen.reduce((s, c) => s + co[m][c], 0);
+        if (sc > candScore) { candScore = sc; cand = m; }
+      }
+      chosen.push(cand);
+    }
+    return [...chosen].sort((a, b) => a - b);
+  };
+
+  // מודל "פיזור מאוזן" (דטרמיניסטי): מספר מכל טווח לפי הציון המשוקלל
+  const genSpread = () => {
+    const bands = [[1, 9], [10, 18], [19, 27], [28, 37]];
+    const chosen = [];
+    for (const [lo, hi] of bands) {
+      let cand = -1, bestE = -Infinity;
+      for (let n = lo; n <= hi; n++) { if (!chosen.includes(n) && ensemble[n] > bestE) { bestE = ensemble[n]; cand = n; } }
+      chosen.push(cand);
+    }
+    const rest = numbers.filter((n) => !chosen.includes(n)).sort((a, b) => ensemble[b] - ensemble[a] || a - b);
+    while (chosen.length < PICK) chosen.push(rest.shift());
+    return [...chosen].sort((a, b) => a - b);
+  };
+
   const tickets = [];
   const seenCombos = new Set();
   strategies.forEach((st, i) => {
-    const weights = weightFor(st.w);
     let combo;
-    for (let tries = 0; tries < 50; tries++) {
-      combo = generateTicket(weights);
-      const sig = combo.join('-');
-      if (!seenCombos.has(sig)) { seenCombos.add(sig); break; }
+    if (st.type === 'companions') combo = genCompanions();
+    else if (st.type === 'spread') combo = genSpread();
+    else {
+      const weights = weightFor(st.w);
+      for (let tries = 0; tries < 50; tries++) {
+        combo = generateTicket(weights);
+        const sig = combo.join('-');
+        if (!seenCombos.has(sig)) { seenCombos.add(sig); break; }
+      }
     }
+    seenCombos.add(combo.join('-'));
     const strong = strongScore[i % strongScore.length].n;
     const evens = combo.filter((n) => n % 2 === 0).length;
+    // ניתוח הצירוף: כמה חמים/באיחור, והצמד החזק ביותר בתוכו
+    let bestPair = [combo[0], combo[1]], bestPC = -1;
+    for (let ai = 0; ai < PICK; ai++) for (let bi = ai + 1; bi < PICK; bi++) { if (co[combo[ai]][combo[bi]] > bestPC) { bestPC = co[combo[ai]][combo[bi]]; bestPair = [combo[ai], combo[bi]]; } }
     tickets.push({
       id: i + 1,
       strategy: st.key,
@@ -339,8 +404,20 @@ function build() {
       sum: sum(combo),
       evens, odds: PICK - evens,
       tags: combo.map((n) => ({ n, tag: tagOf(n) })),
+      analysis: {
+        hotCount: combo.filter((n) => hotSet.has(n)).length,
+        overdueCount: combo.filter((n) => coldSet.has(n)).length,
+        avgFreq: Math.floor((combo.reduce((s, n) => s + allTime.counts[n], 0) / PICK) * 10 + 0.5) / 10,
+        bestPair: { a: bestPair[0], b: bestPair[1], count: co[bestPair[0]][bestPair[1]] },
+      },
     });
   });
+
+  // --- לוטו שיטתי: סטים מומלצים לפי הציון המשוקלל ---
+  const systematic = {
+    s7: { numbers: ensembleRank.slice(0, 7).slice().sort((a, b) => a - b), lines: 7, cost: Math.round(7 * 5.8) },
+    s8: { numbers: ensembleRank.slice(0, 8).slice().sort((a, b) => a - b), lines: 28, cost: Math.round(28 * 5.8) },
+  };
 
   // ---------- הרכבת הפלט ----------
   const fmtDate = (dt) => `${String(dt.getUTCDate()).padStart(2, '0')}/${String(dt.getUTCMonth() + 1).padStart(2, '0')}/${dt.getUTCFullYear()}`;
@@ -388,6 +465,8 @@ function build() {
     sumStats: { mean: sumMean, std: sumStd, min: sumMin, max: sumMax, hist: sumHist, sweet: sumSweet },
     evenOdd: { dist: evenOdd, sweetSplits },
     consecutive: { drawsWithConsec, pctWithConsec: drawsWithConsec / rows.length, perDraw: consecPerDraw, topPairs: topConsecPairs },
+    coOccurrence: { topPairs, companions, expected: pairExpected },
+    systematic,
     markov: { lastNumbers: lastNums, topNext: transRank.slice(0, 10) },
     tickets,
   };
