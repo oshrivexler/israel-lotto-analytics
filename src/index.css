@@ -1,0 +1,75 @@
+@import 'tailwindcss';
+
+/* ============ מערכת העיצוב — בהיר בהשראת מפעל הפיס ============ */
+@theme {
+  --color-base: #f5f1ea;        /* 60% — שמנת חמה */
+  --color-panel: #ffffff;       /* 30% — כרטיסים לבנים */
+  --color-panel-2: #faf6ee;     /* 30% — שכבה משנית עדינה */
+  --color-line: #e7ded0;        /* גבולות */
+  --color-line-soft: #efe8db;
+  --color-ink: #221c16;         /* טקסט ראשי (חום כהה) */
+  --color-muted: #6c6357;       /* טקסט משני */
+  --color-faint: #767061;       /* טקסט עמום — מכוייל לניגודיות WCAG על רקע בהיר */
+
+  --color-accent: #c8102e;      /* 10% — אדום-בורדו של לוטו, שמור לתחזיות ול-CTA */
+  --color-accent-strong: #a8123a;
+  --color-accent-dim: #f4dadd;  /* גוון אדום בהיר לרקעים */
+  --color-hot: #d9491f;         /* חם (אדום-כתום) */
+  --color-cold: #2c6fac;        /* קר / פיגור (כחול-פלדה) */
+  --color-gold: #8c6310;        /* זהב כהה — ניגודיות WCAG על רקע בהיר */
+
+  --font-sans: 'Heebo', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  background-color: var(--color-base);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  /* גווני רקע עדינים + רשת דקה במראה "כרטיס הגרלה" */
+  background-image:
+    radial-gradient(circle at 12% -8%, rgba(200, 16, 46, 0.05), transparent 42%),
+    radial-gradient(circle at 100% 0%, rgba(169, 118, 15, 0.05), transparent 40%),
+    linear-gradient(rgba(34, 28, 22, 0.022) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(34, 28, 22, 0.022) 1px, transparent 1px);
+  background-size: 100% 100%, 100% 100%, 46px 46px, 46px 46px;
+}
+
+/* ספרות מיושרות (tabular) למונוספייס */
+.tnum { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-feature-settings: 'tnum'; }
+
+/* פס גלילה בהיר */
+::-webkit-scrollbar { width: 11px; height: 11px; }
+::-webkit-scrollbar-track { background: var(--color-base); }
+::-webkit-scrollbar-thumb { background: #d8cdb9; border-radius: 6px; border: 3px solid var(--color-base); }
+::-webkit-scrollbar-thumb:hover { background: #c6b89f; }
+
+/* הדגשת אקסנט אדומה לאלמנטים נבחרים (תחזיות / CTA) */
+.glow-accent { box-shadow: 0 0 0 1px rgba(200, 16, 46, 0.22), 0 14px 34px -16px rgba(200, 16, 46, 0.4); }
+.text-glow { text-shadow: none; }
+
+/* צל כרטיס רך */
+.card-shadow { box-shadow: 0 1px 2px rgba(34, 28, 22, 0.04), 0 6px 20px -12px rgba(34, 28, 22, 0.18); }
+
+/* אנימציית כניסה */
+@keyframes rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.rise { animation: rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+@keyframes pulse-ring {
+  0% { box-shadow: 0 0 0 0 rgba(200, 16, 46, 0.4); }
+  70% { box-shadow: 0 0 0 11px rgba(200, 16, 46, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(200, 16, 46, 0); }
+}
+.pulse-ring { animation: pulse-ring 2.4s infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
