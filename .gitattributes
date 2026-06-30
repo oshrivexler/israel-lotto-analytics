@@ -3,3 +3,6 @@
 
 # קובץ הלוטו בקידוד windows-1255 — לשמור בייט-בבייט (ללא נרמול)
 data/lotto.csv -text
+
+# קובצי קיצור-דרך של Windows — לשמור עם סופי-שורה CRLF
+*.url text eol=crlf
