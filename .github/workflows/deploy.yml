@@ -31,27 +31,46 @@ jobs:
           node-version: 20
           cache: npm
 
-      # --- עדכון נתונים מפיס (רק בריצה מתוזמנת/ידנית, לא בכל push של קוד) ---
-      # מנוע הניתוח (Node) ללא תלויות חיצוניות, לכן אין צורך ב-npm install בשלב הזה.
-      - name: Refresh data from Pais
-        id: refresh
+      # --- משיכת נתונים מפיס (רק בריצה מתוזמנת/ידנית) ---
+      # אם פיס חוסם את השרת, השלב הזה ייכשל (אדום) אבל הריצה תמשיך — כדי שנדע בבירור.
+      - name: Fetch latest results from Pais
+        id: fetch
         if: github.event_name != 'push'
+        continue-on-error: true
+        run: node analysis/fetch.mjs
+
+      - name: Analyze & commit if new draw
+        id: refresh
+        if: github.event_name != 'push' && steps.fetch.outcome == 'success'
         run: |
           echo "changed=false" >> "$GITHUB_OUTPUT"
-          if node analysis/fetch.mjs; then
-            node analysis/analyze.mjs
-            if git diff --quiet -- data/lotto.csv src/data/stats.json src/data/draws.json; then
-              echo "אין הגרלה חדשה — אין מה לעדכן."
-            else
-              git config user.name "lotto-data-bot"
-              git config user.email "github-actions[bot]@users.noreply.github.com"
-              git add data/lotto.csv src/data/stats.json src/data/draws.json
-              git commit -m "chore: עדכון תוצאות לוטו מאתר מפעל הפיס"
-              git push
-              echo "changed=true" >> "$GITHUB_OUTPUT"
-            fi
+          node analysis/analyze.mjs
+          if git diff --quiet -- data/lotto.csv src/data/stats.json src/data/draws.json; then
+            echo "אין הגרלה חדשה — הנתונים כבר עדכניים."
           else
-            echo "::warning::משיכת הנתונים מפיס נכשלה (ייתכן חסימת IP מהרץ) — נשמרים הנתונים הקיימים."
+            git config user.name "lotto-data-bot"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add data/lotto.csv src/data/stats.json src/data/draws.json
+            git commit -m "chore: עדכון תוצאות לוטו מאתר מפעל הפיס"
+            git push
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Status summary
+        if: github.event_name != 'push'
+        run: |
+          if [ "${{ steps.fetch.outcome }}" = "success" ]; then
+            {
+              echo "## ✅ פיס נגיש מהשרת — המשיכה האוטומטית עובדת"
+              echo ""
+              echo "השלב 'Fetch latest results from Pais' הצליח. אם הייתה הגרלה חדשה — האתר עודכן ופורסם מחדש אוטומטית."
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            {
+              echo "## ❌ פיס חסם את השרת"
+              echo ""
+              echo "המשיכה מ-GitHub נכשלה (כנראה חסימת IP זר). הנתונים הקיימים נשמרו — נדרש פתרון חלופי לעדכון."
+            } >> "$GITHUB_STEP_SUMMARY"
           fi
 
       # --- בנייה ופרסום (רק כשיש שינוי קוד או הגרלה חדשה) ---
