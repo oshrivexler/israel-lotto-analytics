@@ -37,15 +37,17 @@ export default function App() {
         <NextDraw />
 
         {/* ========== העיקר: התחזיות ========== */}
-        <PredictionsHero key={heroKey} tickets={tickets} sweet={sumStats.sweet} onRegen={() => setHeroKey((k) => k + 1)} />
+        <div id="predictions">
+          <PredictionsHero key={heroKey} tickets={tickets} sweet={sumStats.sweet} onRegen={() => setHeroKey((k) => k + 1)} />
+        </div>
 
         {/* מקרא המודלים (מתקפל) */}
         <ModelsLegend tickets={tickets} />
 
         {/* ========== מעניין: צמדים חזקים + לוטו שיטתי ========== */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <StrongPairs coOccurrence={coOccurrence} />
-          <SystematicLotto systematic={systematic} />
+          <div id="pairs"><StrongPairs coOccurrence={coOccurrence} /></div>
+          <div id="systematic"><SystematicLotto systematic={systematic} /></div>
         </div>
 
         {/* משפט-על כן (קומפקטי) */}
@@ -108,7 +110,8 @@ export default function App() {
       {/* כפתור מילון צף — תמיד נגיש */}
       <button
         onClick={() => setGlossaryOpen(true)}
-        className="fixed bottom-5 left-5 z-50 flex items-center gap-2 rounded-full border border-accent/40 bg-panel card-shadow px-4 py-3 text-[13px] font-bold text-accent transition-all hover:bg-accent hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+        style={{ bottom: 'calc(1.25rem + env(safe-area-inset-bottom, 0px))', insetInlineStart: 'calc(1.25rem + env(safe-area-inset-left, 0px))' }}
+        className="fixed z-50 flex items-center gap-2 rounded-full border border-accent/40 bg-panel card-shadow px-4 py-3 text-[13px] font-bold text-accent transition-all hover:bg-accent hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
         aria-label="פתח מילון מונחים"
       >
         <BookOpen size={16} strokeWidth={2.3} />

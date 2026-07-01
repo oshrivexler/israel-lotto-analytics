@@ -44,6 +44,11 @@ body {
 /* ספרות מיושרות (tabular) למונוספייס */
 .tnum { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-feature-settings: 'tnum'; }
 
+/* מרווחי בטיחות למסך (status bar / notch) במצב אפליקציה מותקנת (PWA) */
+header { padding-top: env(safe-area-inset-top, 0px); }
+/* עוגני קיצור-דרך — שלא ייחתכו מתחת לכותרת הדביקה */
+[id] { scroll-margin-top: 76px; }
+
 /* פס גלילה בהיר */
 ::-webkit-scrollbar { width: 11px; height: 11px; }
 ::-webkit-scrollbar-track { background: var(--color-base); }
