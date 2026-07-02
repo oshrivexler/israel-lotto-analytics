@@ -1,6 +1,7 @@
 import React from 'react';
-import { Activity, Calendar, Database, Hash } from 'lucide-react';
+import { Calendar, Database, Hash } from 'lucide-react';
 import { Ball, pad2 } from '../lib/ui.jsx';
+import Logo from './Logo.jsx';
 
 export default function Header({ meta }) {
   const { lastDraw, totalDraws, firstDraw } = meta;
@@ -9,8 +10,8 @@ export default function Header({ meta }) {
       <div className="mx-auto flex max-w-[1400px] flex-wrap items-center justify-between gap-4 px-5 py-3">
         {/* מותג */}
         <div className="flex items-center gap-3">
-          <div className="relative grid h-10 w-10 place-items-center rounded-xl border border-accent/40 bg-panel">
-            <Activity size={20} className="text-accent" strokeWidth={2.4} />
+          <div className="relative h-10 w-10 shrink-0">
+            <Logo size={40} className="rounded-xl" />
             <span className="absolute inset-0 rounded-xl pulse-ring" />
           </div>
           <div>
