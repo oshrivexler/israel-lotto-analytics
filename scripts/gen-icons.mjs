@@ -12,7 +12,7 @@ const PUB = path.join(ROOT, 'public');
 const ICONS = path.join(PUB, 'icons');
 fs.mkdirSync(ICONS, { recursive: true });
 
-// לוגו #4 — תג אדום עם האות ל' לבנה וקו-דופק זהב (מלא-שוליים, לאייקון PWA)
+// לוגו #1 — האות ל' לבנה + חץ-מגמה זהב עולה (בלי חפיפה), מלא-שוליים לאייקון PWA
 const svg = `<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
@@ -20,10 +20,16 @@ const svg = `<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://w
     </linearGradient>
   </defs>
   <rect width="512" height="512" fill="url(#bg)"/>
-  <polyline points="120,300 214,300 250,236 300,364 336,300 392,300" fill="none"
-    stroke="#e8b23a" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
-  <text x="256" y="352" text-anchor="middle" font-family="Arial, sans-serif"
-    font-size="300" font-weight="700" fill="#ffffff">ל</text>
+  <!-- חץ-מגמה עולה (זהב) -->
+  <polyline points="252,352 300,300 336,320 400,214" fill="none"
+    stroke="#e8b23a" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="368,206 404,208 402,244" fill="none"
+    stroke="#e8b23a" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="300" cy="300" r="11" fill="#ffffff"/>
+  <circle cx="336" cy="320" r="11" fill="#ffffff"/>
+  <!-- האות ל' -->
+  <text x="196" y="348" text-anchor="middle" font-family="Arial, sans-serif"
+    font-size="250" font-weight="700" fill="#ffffff">ל</text>
 </svg>`;
 
 fs.writeFileSync(path.join(PUB, 'icon.svg'), svg);

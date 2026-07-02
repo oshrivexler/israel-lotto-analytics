@@ -1,6 +1,6 @@
 {
   "meta": {
-    "generatedAt": "2026-07-01T04:44:31.857130+00:00",
+    "generatedAt": "2026-07-02T18:15:50.628Z",
     "source": "lotto.csv",
     "totalDraws": 2478,
     "firstDraw": {
@@ -32,8 +32,7 @@
       "preModern": 2039,
       "total": 4517
     },
-    "expectedShare": 0.16216216216216217,
-    "engine": "python-pandas"
+    "expectedShare": 0.16216216216216217
   },
   "numberTable": [
     {
@@ -987,7 +986,7 @@
   },
   "sumStats": {
     "mean": 112.04196933010492,
-    "std": 24.229004622431574,
+    "std": 24.22900462243159,
     "min": 36,
     "max": 187,
     "hist": [
@@ -2174,7 +2173,7 @@
       "analysis": {
         "hotCount": 3,
         "overdueCount": 1,
-        "avgFreq": 422.0,
+        "avgFreq": 422,
         "bestPair": {
           "a": 1,
           "b": 34,

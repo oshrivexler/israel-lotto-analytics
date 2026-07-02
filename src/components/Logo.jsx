@@ -1,6 +1,6 @@
 import React from 'react';
 
-/** לוגו האתר — תג אדום עם האות ל' וקו-דופק זהב (זהה לאייקון האפליקציה). */
+/** לוגו האתר — תג אדום עם האות ל' לבנה וחץ-מגמה זהב עולה (זהה לאייקון האפליקציה). */
 export default function Logo({ size = 40, className = '' }) {
   const id = React.useId();
   return (
@@ -12,8 +12,13 @@ export default function Logo({ size = 40, className = '' }) {
         </linearGradient>
       </defs>
       <rect width="100" height="100" rx="24" fill={`url(#${id})`} />
-      <polyline points="20,60 42,60 49,46 59,71 66,60 80,60" fill="none" stroke="#e8b23a" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" />
-      <text x="50" y="70" textAnchor="middle" fontFamily="Heebo, Arial, sans-serif" fontSize="60" fontWeight="800" fill="#ffffff">ל</text>
+      {/* חץ-מגמה עולה */}
+      <polyline points="49,69 59,59 66,63 78,42" fill="none" stroke="#e8b23a" strokeWidth="4.8" strokeLinecap="round" strokeLinejoin="round" />
+      <polyline points="72,40 79,41 78,49" fill="none" stroke="#e8b23a" strokeWidth="4.8" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="59" cy="59" r="2.3" fill="#ffffff" />
+      <circle cx="66" cy="63" r="2.3" fill="#ffffff" />
+      {/* האות ל' */}
+      <text x="38" y="68" textAnchor="middle" fontFamily="Arial, Heebo, sans-serif" fontSize="49" fontWeight="700" fill="#ffffff">ל</text>
     </svg>
   );
 }

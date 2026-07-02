@@ -9,7 +9,7 @@
     "analyze:node": "node analysis/analyze.mjs",
     "update": "node analysis/fetch.mjs && node analysis/analyze.mjs",
     "dev": "vite",
-    "build": "python analysis/analyze.py && vite build",
+    "build": "node analysis/analyze.mjs && vite build",
     "preview": "vite preview"
   },
   "dependencies": {
